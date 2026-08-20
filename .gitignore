@@ -1,8 +1,0 @@
-.env
-__pycache__/
-*.pyc
-# artifacts chạy sinh ra — sinh viên tự tạo khi chạy
-dataset.jsonl
-results.jsonl
-verdicts.jsonl
-report.html
