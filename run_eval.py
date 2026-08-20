@@ -4,22 +4,18 @@ Cách dùng:  python3 run_eval.py [dataset.jsonl]
 Mặc định đọc dataset.jsonl; nếu chưa có thì copy dataset.example.jsonl làm mẫu.
 Chạy TUẦN TỰ (không song song) để dễ đọc log và tránh vượt rate limit.
 
-Tracing (bài lab yêu cầu): đặt BRAINTRUST_API_KEY trong .env là mỗi câu hỏi sẽ được
-log thành một trace trong project "ai-evaluation" (xem lại tool calls, tokens, cost
-trên app.braintrust.dev). Không có key thì bỏ qua lặng lẽ. Dùng LangSmith cũng được —
-xem gợi ý trong GUIDE.md.
+Tracing (bài lab yêu cầu): đặt BRAINTRUST_API_KEY hoặc LANGSMITH_API_KEY trong .env —
+mỗi câu hỏi sẽ được log thành một trace trong project "ai-evaluation" (xem lại tool
+calls, tokens, cost trên app.braintrust.dev / smith.langchain.com). Không có key thì
+bỏ qua lặng lẽ. Chi tiết trong GUIDE.md mục Tracing.
 """
 import json, os, sys, time
 
 import tutor
+import tracing
 
-# --- Braintrust (tuỳ chọn): log mỗi câu thành 1 trace
-try:
-    import braintrust
-    _bt = braintrust.init_logger(project=os.environ.get("BRAINTRUST_PROJECT", "ai-evaluation")) \
-        if os.environ.get("BRAINTRUST_API_KEY") else None
-except ImportError:
-    _bt = None
+# --- Tracing (tuỳ chọn): Braintrust hoặc LangSmith, log mỗi câu thành 1 trace
+_tracer = tracing.init_tracer()
 
 # Bảng giá USD / 1M tokens (input, output) — theo platform constants.ts
 PRICING = {"deepseek-v4-flash": (0.44, 1.32), "gpt-4o-mini": (0.15, 0.60)}
@@ -68,18 +64,16 @@ def main():
                        retrieved=meta["retrieved"], latency_s=meta["latency_s"],
                        usage=meta["usage"], cost_usd=cost)
             total_cost += cost or 0
-            if _bt:  # log trace lên Braintrust: input, output, tool calls, tokens, cost
-                span = _bt.start_span(name="tutor-run", type="task")
-                span.log(
-                    input={"question": q, "slide": slide, "model": tutor.MODEL},
-                    output=output,
-                    metadata={"steps": meta.get("steps"), "scenario_id": rec["scenario_id"]},
-                    metrics={**{k: v for k, v in meta["usage"].items()
-                                if isinstance(v, (int, float))},
-                             "latency_s": meta["latency_s"],
-                             **({"cost_usd": cost} if cost else {})},
-                )
-                span.end()
+            _tracer.log_run(  # log trace: input, output, tool calls, tokens, cost
+                name="tutor-run",
+                inputs={"question": q, "slide": slide, "model": tutor.MODEL},
+                outputs=output,
+                metadata={"steps": meta.get("steps"), "scenario_id": rec["scenario_id"]},
+                metrics={**{k: v for k, v in meta["usage"].items()
+                            if isinstance(v, (int, float))},
+                         "latency_s": meta["latency_s"],
+                         **({"cost_usd": cost} if cost else {})},
+            )
             print("ok (%.1fs, %s tok, $%s)" % (
                 meta["latency_s"], meta["usage"].get("total_tokens", "?"),
                 "%.6f" % cost if cost is not None else "?"))
@@ -93,10 +87,12 @@ def main():
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     print("\nXong: ghi %d dòng vào results.jsonl | tổng %.1fs | chi phí ~$%.6f"
           % (len(results), time.time() - t_start, total_cost))
-    if _bt:
-        _bt.flush()
-        print("Đã log %d trace lên Braintrust project '%s'."
-              % (len(results), os.environ.get("BRAINTRUST_PROJECT", "ai-evaluation")))
+    if _tracer.backend:
+        _tracer.flush()
+        print("Đã log %d trace lên %s (project '%s')."
+              % (len(results), _tracer.backend,
+                 os.environ.get("BRAINTRUST_PROJECT") or os.environ.get("LANGSMITH_PROJECT")
+                 or "ai-evaluation"))
     print("Bước tiếp: python3 judge.py (chấm tự động) hoặc python3 report.py (xem report)")
 
 if __name__ == "__main__":

@@ -180,6 +180,40 @@ check("cost deepseek", estimate_cost_usd("deepseek/deepseek-v4-flash",
       {"prompt_tokens": 1_000_000, "completion_tokens": 1_000_000}) == 1.76)
 check("cost model lạ -> None", estimate_cost_usd("x/y", {"prompt_tokens": 1}) is None)
 
+print("== Tầng 7b: tracing backend ==")
+import importlib.util
+import tracing
+for k in ("BRAINTRUST_API_KEY", "LANGSMITH_API_KEY", "LANGCHAIN_API_KEY"):
+    os.environ.pop(k, None)
+t0 = tracing.init_tracer()
+check("không key -> noop", t0.backend is None)
+try:
+    t0.log_run(name="x", inputs={}, outputs={})
+    t0.flush()
+    check("noop log_run/flush không raise", True)
+except Exception as e:
+    check("noop log_run/flush không raise", False, str(e))
+
+has_ls = importlib.util.find_spec("langsmith") is not None
+has_bt = importlib.util.find_spec("braintrust") is not None
+os.environ["LANGSMITH_API_KEY"] = "lsv2_pt_fake"
+t1 = tracing.init_tracer()
+check("LANGSMITH_API_KEY -> langsmith" + ("" if has_ls else " (bỏ qua: chưa pip install)"),
+      t1.backend == "langsmith" if has_ls else t1.backend is None)
+if has_ls:
+    try:  # key giả: chỉ warn-once, không được raise làm chết eval
+        t1.log_run(name="x", inputs={}, outputs={})
+        t1.flush()
+        check("langsmith lỗi chỉ warn không raise", True)
+    except Exception as e:
+        check("langsmith lỗi chỉ warn không raise", False, str(e))
+os.environ["BRAINTRUST_API_KEY"] = "sk-fake"
+t2 = tracing.init_tracer()
+check("braintrust ưu tiên hơn langsmith" + ("" if has_bt else " (bỏ qua: chưa pip install)"),
+      t2.backend == "braintrust" if has_bt else t2.backend is None)
+for k in ("BRAINTRUST_API_KEY", "LANGSMITH_API_KEY"):
+    os.environ.pop(k, None)
+
 if os.environ.get("EVAL_LIVE") == "1":
     print("== Tầng 8: LIVE — gateway thật, model thật ==")
     for q in ["calibration là gì ạ", "cuối tuần này đà lạt có mưa không", "giải thích đoạn này"]:

@@ -90,10 +90,11 @@ Mọi run tutor/judge phải được log trace — đây là minh chứng bạn
 - **Braintrust:** tạo project (vd `ai-evaluation`) trên braintrust.dev, lấy API key, đặt
   vào `.env`: `BRAINTRUST_API_KEY=sk-...`. Từ đó `run_eval.py` và `judge.py` tự log mỗi
   câu thành một trace (input, output, tool calls, tokens, cost).
-- **LangSmith:** nếu nhóm quen LangSmith — tự gắn tương đương (đặt `LANGSMITH_API_KEY` +
-  `LANGSMITH_TRACING=true`, wrap `tutor.call_tutor` bằng `@traceable`). Chỉ cần một trong hai.
+- **LangSmith:** tạo project trên smith.langchain.com, lấy API key, đặt vào `.env`:
+  `LANGSMITH_API_KEY=lsv2_pt_...` (tuỳ chọn `LANGSMITH_PROJECT=ai-evaluation`).
+  Code tự nhận backend — không cần sửa gì thêm. Chỉ cần một trong hai.
 
-Khi nộp: ghi link project vào `evidence/braintrust-link.md`.
+Khi nộp: ghi link project (Braintrust hoặc LangSmith) vào `evidence/braintrust-link.md`.
 
 ## Cấu hình (biến môi trường, đặt trong .env)
 

@@ -10,14 +10,10 @@ Model judge mặc định khác model tutor (EVAL_JUDGE_MODEL, mặc định ope
 import csv, json, os, sys
 
 import tutor
+import tracing
 
-# --- Braintrust (tuỳ chọn): log mỗi verdict thành 1 trace
-try:
-    import braintrust
-    _bt = braintrust.init_logger(project=os.environ.get("BRAINTRUST_PROJECT", "ai-evaluation")) \
-        if os.environ.get("BRAINTRUST_API_KEY") else None
-except ImportError:
-    _bt = None
+# --- Tracing (tuỳ chọn): Braintrust hoặc LangSmith, log mỗi verdict thành 1 trace
+_tracer = tracing.init_tracer()
 
 JUDGE_MODEL = os.environ.get("EVAL_JUDGE_MODEL", "openai/gpt-4o-mini")
 
@@ -94,16 +90,14 @@ def main():
         print("[%d/%d] %s ... " % (i, len(rows), rec["scenario_id"]), end="", flush=True)
         try:
             v = judge_row(rec, template)
-            if _bt:
-                span = _bt.start_span(name="judge-run", type="task")
-                span.log(
-                    input={"scenario_id": rec["scenario_id"], "judge_model": JUDGE_MODEL},
-                    output={"verdict": v["verdict"], "rationale": v.get("rationale", "")},
-                    metrics={**{k: x for k, x in v.get("usage", {}).items()
-                                if isinstance(x, (int, float))},
-                             "latency_s": v.get("latency_s", 0)},
-                )
-                span.end()
+            _tracer.log_run(
+                name="judge-run",
+                inputs={"scenario_id": rec["scenario_id"], "judge_model": JUDGE_MODEL},
+                outputs={"verdict": v["verdict"], "rationale": v.get("rationale", "")},
+                metrics={**{k: x for k, x in v.get("usage", {}).items()
+                            if isinstance(x, (int, float))},
+                         "latency_s": v.get("latency_s", 0)},
+            )
             print(v["verdict"])
         except Exception as e:
             v = {"scenario_id": rec["scenario_id"], "verdict": "uncertain",
@@ -115,9 +109,9 @@ def main():
         for v in verdicts:
             f.write(json.dumps(v, ensure_ascii=False) + "\n")
     print("Ghi %d verdict vào verdicts.jsonl" % len(verdicts))
-    if _bt:
-        _bt.flush()
-        print("Đã log %d trace judge lên Braintrust." % len(verdicts))
+    if _tracer.backend:
+        _tracer.flush()
+        print("Đã log %d trace judge lên %s." % (len(verdicts), _tracer.backend))
     print_confusion(verdicts, read_labels())
 
 if __name__ == "__main__":

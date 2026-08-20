@@ -16,7 +16,7 @@ câu hỏi học viên, chỉ dựa trên tài liệu khóa học, output là JS
 
 ```bash
 pip install -r requirements.txt      # 1. cài đặt
-cp .env.example .env                 # 2. điền API key của provider bạn dùng (+ BRAINTRUST_API_KEY để log trace)
+cp .env.example .env                 # 2. điền API key của provider bạn dùng (+ BRAINTRUST_API_KEY hoặc LANGSMITH_API_KEY để log trace)
 cp dataset.example.jsonl dataset.jsonl
 python3 test_eval_kit.py             # 3. 37 test offline phải sạch hết
 python3 run_eval.py                  # 4. chạy tutor trên dataset -> results.jsonl
@@ -37,7 +37,7 @@ python3 report.py && open report.html  # 5. xem kết quả, gán nhãn
 **Nguyên tắc nộp bài:** mỗi bước phải nộp đủ **đầu vào + đầu ra (data thô) + quyết định
 kèm vì sao**. Cấu trúc thư mục nộp và checklist: [eval-pack/README.md](eval-pack/README.md).
 
-**Tracing bắt buộc:** đặt `BRAINTRUST_API_KEY` trong `.env` (hoặc LangSmith tương đương)
+**Tracing bắt buộc:** đặt `BRAINTRUST_API_KEY` hoặc `LANGSMITH_API_KEY` trong `.env`
 trước khi chạy — mọi run tutor/judge log thành trace, link project là một phần bài nộp.
 
 ## Các lệnh
@@ -69,7 +69,8 @@ Model viết dạng `provider/model` — repo gọi **thẳng API chuẩn của 
 |---|---|---|
 | `EVAL_MODEL` | `deepseek/deepseek-v4-flash` | Model của tutor |
 | `EVAL_JUDGE_MODEL` | `openai/gpt-4o-mini` | Model của judge (nên KHÁC tutor — tránh tự chấm chéo) |
-| `BRAINTRUST_API_KEY` | — | Bật log trace (bắt buộc khi nộp bài) |
+| `BRAINTRUST_API_KEY` | — | Bật log trace lên Braintrust (bắt buộc một trong hai khi nộp bài) |
+| `LANGSMITH_API_KEY` | — | Bật log trace lên LangSmith (thay cho Braintrust; `LANGCHAIN_API_KEY` cũng được) |
 | `EVAL_BASE_URL` + `EVAL_API_KEY` | — (không đặt = gọi thẳng provider) | Tuỳ chọn: gateway OpenAI-compatible riêng |
 
 ## Cấu trúc repo
