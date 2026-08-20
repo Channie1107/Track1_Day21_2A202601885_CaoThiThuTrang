@@ -4,7 +4,7 @@ Model nhận tool kb_search (BM25 local trên corpus/), TỰ quyết định g�
 lần với truy vấn nào, rồi trả JSON theo contract — giống hệt cơ chế agentic của
 platform, chỉ khác môi trường chạy (Python local thay vì Next.js).
 
-Dùng trực tiếp trong REPL:  python3 -i src/tutor.py  ->  ask_tutor("câu hỏi")
+Dùng trực tiếp trong REPL:  python3 -i tutor/tutor.py  ->  ask_tutor("câu hỏi")
 Hoặc được run_eval.py import để chạy cả dataset.
 """
 import json, math, os, re, time, unicodedata
@@ -54,10 +54,11 @@ Lưu ý:
 """
 
 # --- Cấu hình: đọc từ env hoặc file .env (ở ROOT repo), KHÔNG hardcode key
-# BASE_DIR trỏ về root repo (src/ nằm dưới root) — corpus/ và .env đều ở root.
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# BASE_DIR = thư mục tutor/ (corpus/ nằm cùng); ROOT_DIR = root repo (.env ở đó).
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
 
-def load_dotenv(path=os.path.join(BASE_DIR, ".env")):
+def load_dotenv(path=os.path.join(ROOT_DIR, ".env")):
     """Nạp biến môi trường từ file .env đơn giản (KEY=VALUE mỗi dòng).
     Ghi đè cả biến đã có trong shell — .env của repo phải thắng, nếu không một
     OPENAI_API_KEY global (vd export trong ~/.zshrc) sẽ lấn key gateway."""

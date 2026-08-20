@@ -3,7 +3,7 @@
 Mỗi thành viên chấm độc lập trong report.html rồi Export labels.csv, đổi tên thành
 labels-<tên>.csv. Sau đó:
 
-    python3 src/agreement.py labels-an.csv labels-binh.csv labels-chi.csv
+    python3 eval/agreement.py labels-an.csv labels-binh.csv labels-chi.csv
 
 In ra: % 3 người đồng thuận hoàn toàn, % từng cặp, và danh sách các case bất đồng
 (đem vào thảo luận để chốt nhãn vàng — case bất đồng là vàng của Phase 3).
@@ -20,7 +20,7 @@ def read_labels(path):
 
 def main(paths):
     if len(paths) < 2:
-        raise SystemExit("Cần ít nhất 2 file: python3 src/agreement.py labels-a.csv labels-b.csv")
+        raise SystemExit("Cần ít nhất 2 file: python3 eval/agreement.py labels-a.csv labels-b.csv")
     members = {p.split("/")[-1].replace("labels-", "").replace(".csv", ""): read_labels(p)
                for p in paths}
     common = set.intersection(*[set(m) for m in members.values()])

@@ -1,6 +1,6 @@
 """Chạy tutor trên toàn bộ dataset -> results.jsonl (kèm latency, tokens, chi phí).
 
-Cách dùng:  python3 src/run_eval.py [dataset.jsonl]
+Cách dùng:  python3 eval/run_eval.py [dataset.jsonl]
 Mặc định đọc dataset.jsonl ở root repo; nếu chưa có thì copy data/dataset.example.jsonl làm mẫu.
 Chạy TUẦN TỰ (không song song) để dễ đọc log và tránh vượt rate limit.
 
@@ -10,6 +10,10 @@ calls, tokens, cost trên app.braintrust.dev / smith.langchain.com). Không có 
 bỏ qua lặng lẽ. Chi tiết trong README.md mục Tracing.
 """
 import json, os, sys, time
+from pathlib import Path
+
+# tutor.py nằm ở tutor/ (khu vực sản phẩm) — thêm vào sys.path để import được
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tutor"))
 
 import tutor
 import tracing
@@ -93,7 +97,7 @@ def main():
               % (len(results), _tracer.backend,
                  os.environ.get("BRAINTRUST_PROJECT") or os.environ.get("LANGSMITH_PROJECT")
                  or "ai-evaluation"))
-    print("Bước tiếp: python3 src/judge.py (chấm tự động) hoặc python3 src/report.py (xem report)")
+    print("Bước tiếp: python3 eval/judge.py (chấm tự động) hoặc python3 eval/report.py (xem report)")
 
 if __name__ == "__main__":
     main()

@@ -10,7 +10,9 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_ROOT, "eval"))    # judge, run_eval, tracing
+sys.path.insert(0, os.path.join(_ROOT, "tutor"))   # tutor
 
 import tutor
 

@@ -1,6 +1,6 @@
 # AI Support Log
 
-> Ghi lại bạn đã dùng AI (ChatGPT/Claude/Kimi...) ở những bước nào khi làm eval-pack.
+> Ghi lại bạn đã dùng AI (ChatGPT/Claude/Kimi...) ở những bước nào khi làm deliverables.
 > Trung thực là một phần của bài nộp — không ai làm một mình, quan trọng là bạn giữ
 > quyền kiểm soát chất lượng.
 
