@@ -95,13 +95,15 @@ def main():
         try:
             v = judge_row(rec, template)
             if _bt:
-                _bt.start_span(name="judge-run", type="task").log(
+                span = _bt.start_span(name="judge-run", type="task")
+                span.log(
                     input={"scenario_id": rec["scenario_id"], "judge_model": JUDGE_MODEL},
                     output={"verdict": v["verdict"], "rationale": v.get("rationale", "")},
                     metrics={**{k: x for k, x in v.get("usage", {}).items()
                                 if isinstance(x, (int, float))},
                              "latency_s": v.get("latency_s", 0)},
-                ).end()
+                )
+                span.end()
             print(v["verdict"])
         except Exception as e:
             v = {"scenario_id": rec["scenario_id"], "verdict": "uncertain",

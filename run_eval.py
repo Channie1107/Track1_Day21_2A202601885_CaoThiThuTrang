@@ -69,7 +69,8 @@ def main():
                        usage=meta["usage"], cost_usd=cost)
             total_cost += cost or 0
             if _bt:  # log trace lên Braintrust: input, output, tool calls, tokens, cost
-                _bt.start_span(name="tutor-run", type="task").log(
+                span = _bt.start_span(name="tutor-run", type="task")
+                span.log(
                     input={"question": q, "slide": slide, "model": tutor.MODEL},
                     output=output,
                     metadata={"steps": meta.get("steps"), "scenario_id": rec["scenario_id"]},
@@ -77,7 +78,8 @@ def main():
                                 if isinstance(v, (int, float))},
                              "latency_s": meta["latency_s"],
                              **({"cost_usd": cost} if cost else {})},
-                ).end()
+                )
+                span.end()
             print("ok (%.1fs, %s tok, $%s)" % (
                 meta["latency_s"], meta["usage"].get("total_tokens", "?"),
                 "%.6f" % cost if cost is not None else "?"))
