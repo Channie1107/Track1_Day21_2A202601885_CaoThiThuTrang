@@ -1,8 +1,10 @@
 """Sinh report.html TĨNH (1 file, mở bằng double-click, không cần server/mạng).
 
 Đọc results.jsonl + verdicts.jsonl + labels.csv, nhúng toàn bộ dữ liệu vào HTML.
-Nhãn pass/fail/uncertain bấm trong report được lưu vào localStorage của trình duyệt;
-nút "Export labels.csv" tải về file CSV để đưa lại cho judge.py so agreement.
+Nhãn pass/fail/uncertain KÈM NOTE NGẮN bấm/nhập trong report, lưu vào localStorage
+của trình duyệt (dạng {label, note}; đọc được cả bản cũ lưu string thuần);
+nút "Export labels.csv" tải về CSV 3 cột scenario_id,label,note để đưa lại cho
+judge.py so agreement.
 """
 import csv, json, os
 
@@ -61,6 +63,7 @@ main{max-width:960px;margin:16px auto;padding:0 12px}
 .fu{margin:4px 0 4px 18px;font-size:14px}
 .raw{display:none;white-space:pre-wrap;background:#1d1f24;color:#d6dce4;font-size:12px;padding:10px;border-radius:8px;overflow:auto;max-height:320px}
 .lbl button.on{background:#223;color:#fff;border-color:#223}
+.note{font-size:12px;padding:4px 8px;border:1px solid #ccd;border-radius:6px;width:230px}
 .rat{font-size:13px;color:#555;margin-top:6px}
 </style></head><body>
 <header><h1>Eval report — AI Tutor</h1>
@@ -70,13 +73,16 @@ Lọc verdict: <select id="flt"><option value="">Tất cả</option><option>pass
 <script>
 var ROWS=__DATA__, KEY="evalkit-labels";
 var saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
+// tương thích ngược: bản cũ lưu value là string label thuần -> coi như {label, note:""}
+function norm(v){return typeof v=="string"?{label:v,note:""}:(v||{label:"",note:""})}
+function cur(sid,human){var s=saved[sid];return s?norm(s):{label:human||"",note:""}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function badge(v){return v?'<span class="badge '+v+'">judge: '+v+'</span>':'<span class="badge">chưa chấm</span>'}
 function render(){
  var f=document.getElementById("flt").value,el=document.getElementById("list"),h="",n=0;
  ROWS.forEach(function(r,i){
   if(f&&((f=="none"&&r.verdict)||(f!="none"&&r.verdict!=f)))return;n++;
-  var o=r.output||{},lbl=saved[r.scenario_id]||r.human_label||"";
+  var o=r.output||{},c=cur(r.scenario_id,r.human_label),lbl=c.label;
   h+='<div class="card"><div class="meta">'+esc(r.scenario_id)+' &middot; '+esc(o.scope||"")+
   (r.latency_s!=null?' &middot; '+r.latency_s+'s':'')+(r.cost_usd!=null?' &middot; ~$'+r.cost_usd:'')+'</div>';
   if(r.slide)h+='<div class="meta" style="color:#346">Đang xem slide '+esc(r.slide.id)+' — '+esc(r.slide.title)+(r.slide.keyword?' &middot; từ khoá: <b>'+esc(r.slide.keyword)+'</b>':'')+'</div>';
@@ -88,17 +94,23 @@ function render(){
   h+='<div style="margin-top:10px">'+badge(r.verdict)+' <span class="rat">'+esc(r.rationale)+'</span></div>'+
   '<div class="lbl" style="margin-top:8px">Nhãn người: '+["pass","fail","uncertain"].map(function(v){
    return '<button data-i="'+i+'" data-v="'+v+'" class="'+(lbl==v?"on":"")+'" onclick="setLabel(this)">'+v+'</button>'}).join(" ")+
+  ' <input type="text" class="note" data-i="'+i+'" placeholder="note ngắn (vd: fail vì citation)" value="'+esc(c.note)+'" onchange="setNote(this)">'+
   ' <button data-i="'+i+'" onclick="raw(this)">xem raw</button></div>'+
   '<div class="raw">'+esc(r.raw_content||JSON.stringify(o,null,2))+'</div></div>';});
  el.innerHTML=h||"<p>Không có dòng nào khớp bộ lọc.</p>";
  document.getElementById("stat").textContent=n+"/"+ROWS.length+" dòng";}
-function setLabel(b){var r=ROWS[b.dataset.i];
- if(saved[r.scenario_id]==b.dataset.v)delete saved[r.scenario_id];else saved[r.scenario_id]=b.dataset.v;
+function setLabel(b){var r=ROWS[b.dataset.i],c=cur(r.scenario_id,r.human_label);
+ if(c.label==b.dataset.v){if(c.note)saved[r.scenario_id]={label:"",note:c.note};else delete saved[r.scenario_id]}
+ else saved[r.scenario_id]={label:b.dataset.v,note:c.note};
  localStorage.setItem(KEY,JSON.stringify(saved));render();}
+function setNote(inp){var r=ROWS[inp.dataset.i],c=cur(r.scenario_id,r.human_label),n=inp.value.trim();
+ if(!n&&!c.label)delete saved[r.scenario_id];else saved[r.scenario_id]={label:c.label,note:n};
+ localStorage.setItem(KEY,JSON.stringify(saved));}
 function raw(b){var d=b.closest(".card").querySelector(".raw");d.style.display=d.style.display=="block"?"none":"block";}
 function exportCsv(){var s="scenario_id,label,note\\n";
- ROWS.forEach(function(r){var l=saved[r.scenario_id]||r.human_label||"";
-  s+='"'+r.scenario_id.replace(/"/g,'""')+'","'+l+'",""\\n'});
+ function q(x){return '"'+String(x==null?"":x).replace(/"/g,'""')+'"'}
+ ROWS.forEach(function(r){var c=cur(r.scenario_id,r.human_label);
+  s+=q(r.scenario_id)+","+q(c.label)+","+q(c.note)+"\\n"});
  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/csv"}));
  a.download="labels.csv";a.click();}
 document.getElementById("flt").onchange=render;render();

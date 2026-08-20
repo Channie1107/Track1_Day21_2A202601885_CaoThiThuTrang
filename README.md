@@ -100,7 +100,8 @@ Chạy dataset khác: `python3 eval/run_eval.py ten-file.jsonl`.
 ### Bước 4 — `eval/report.py`: nhìn và gán nhãn
 
 - `report.html` tự chứa mọi dữ liệu: câu hỏi, slide context, câu trả lời, nguồn trích,
-  verdict judge. Bấm pass/fail/uncertain để gán nhãn người (lưu trong trình duyệt).
+  verdict judge. Bấm pass/fail/uncertain và nhập **note ngắn** (vd tiêu chí gây
+  fail: `fail: citation`) để gán nhãn người (lưu trong trình duyệt).
 - Bấm **Export labels.csv** → lưu đè `labels.csv` → chạy lại `eval/judge.py` để xem agreement.
 
 ### Những việc mổ xẻ sâu hơn
@@ -150,14 +151,21 @@ Khi nộp: ghi link project (Braintrust hoặc LangSmith) vào `deliverables/evi
 ## Định dạng một dòng dataset
 
 ```json
-{"id": "sc-01", "input": "câu hỏi của học viên",
+{"scenario_id": "sc-01-in-judge", "input": "câu hỏi của học viên",
+ "expected_scope": "in_scope", "note": "ghi chú ngắn của nhóm",
  "metadata": {"slide": {"id": "s53", "title": "Pass rate giống nhau — không có nghĩa judge nghĩ giống bạn",
                         "keyword": "calibration"}}}
 ```
 
-`metadata.slide` (tuỳ chọn) là slide học viên đang xem khi hỏi — đưa vào prompt tutor
-và cả judge, để câu deixis kiểu "giải thích đoạn này" chấm được đúng bối cảnh.
-Câu noise/out-of-scope không gắn slide thì bỏ field này.
+- `input` là bắt buộc — câu hỏi như học viên thật viết. `scenario_id` là mã duy nhất
+  của row (code cũng chấp nhận `id`, nhưng hãy dùng `scenario_id` cho thống nhất —
+  xem mẫu `data/dataset.example.jsonl`).
+- `expected_scope` / `note` (tuỳ chọn): kỳ vọng in-scope/out-of-scope và ghi chú của nhóm.
+- Các thông tin grid (`dimension_values`, `expected_behavior`, `risk_if_fail`,
+  `set_type`...) đặt trong `metadata` để sau lọc theo slice.
+- `metadata.slide` (khi câu gắn slide) là slide học viên đang xem khi hỏi — đưa vào
+  prompt tutor và cả judge, để câu deixis kiểu "giải thích đoạn này" chấm được đúng
+  bối cảnh. Câu noise/out-of-scope không gắn slide thì bỏ field này.
 
 ## Gỡ lỗi nhanh
 

@@ -149,7 +149,7 @@ results-vN.jsonl, labels.csv, judge-prompt-vN.md, verdicts-vN.jsonl, braintrust-
 
 #### 2. Quá trình đồng thuận của con người
 
-- Agreement vòng độc lập: ___% (answer) · ___% (follow-up)
+- Agreement vòng độc lập (nhãn tổng): ___% — kèm thống kê từ note: tiêu chí nào gây bất đồng nhiều nhất
 - Mâu thuẫn lớn nhất: (case/tiêu chí nào, hai phía nghĩ gì)
 - Nhóm xử lý bằng cách nào: (siết định nghĩa / đổi thang / bỏ tiêu chí...)
 
