@@ -217,14 +217,19 @@ def chat(messages, model=None, temperature=0, max_tokens=800, tools=None):
 
 def parse_json_content(content):
     """Model đôi khi bọc JSON trong ``` fence — lột ra trước khi parse.
-    JSON vỡ (cắt giữa chừng, sai escape) thì đánh dấu _parse_error thay vì raise."""
+    JSON vỡ (cắt giữa chừng, sai escape) thì đánh dấu _parse_error thay vì raise.
+    strict=False: deepseek hay nhả xuống dòng THẬT (\\n raw) giữa string value —
+    JSON chặt không chịu, nhưng nội dung vẫn đọc được nên nới lỏng thay vì fail."""
     m = re.search(r"\{.*\}", content, re.S)
     if not m:
         return {"_parse_error": True, "raw": content}
     try:
         return json.loads(m.group(0))
     except json.JSONDecodeError:
-        return {"_parse_error": True, "raw": content}
+        try:
+            return json.loads(m.group(0), strict=False)
+        except json.JSONDecodeError:
+            return {"_parse_error": True, "raw": content}
 
 # --- Context slide: học viên hỏi từ một slide cụ thể, prompt phải mang theo
 def format_slide_context(slide):

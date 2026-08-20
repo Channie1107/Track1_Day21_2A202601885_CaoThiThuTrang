@@ -55,6 +55,12 @@ check("parse JSON bọc fence", tutor.parse_json_content('```json\n{"a": 1}\n```
 broken = tutor.parse_json_content('{"a": "cắt giữa chừng...')
 check("JSON vỡ -> _parse_error không raise", broken.get("_parse_error") is True and "raw" in broken)
 check("không có JSON -> _parse_error", tutor.parse_json_content("không có gì hết").get("_parse_error") is True)
+# Regression: deepseek nhả xuống dòng THẬT giữa string value (đã gặp live 20/08)
+raw_nl = tutor.parse_json_content('{"scope": "in_scope", "answer": "dòng 1\ndòng 2"}')
+check("JSON có newline thật trong string -> parse lỏng được",
+      raw_nl.get("answer") == "dòng 1\ndòng 2" and not raw_nl.get("_parse_error"))
+really_broken = tutor.parse_json_content('{"a": 1, "b": }')
+check("JSON sai cú pháp thật -> vẫn _parse_error", really_broken.get("_parse_error") is True)
 
 print("== Tầng 5: slide context ==")
 check("slide None -> rỗng", tutor.format_slide_context(None) == "")
