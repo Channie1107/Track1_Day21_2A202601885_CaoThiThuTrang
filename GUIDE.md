@@ -26,8 +26,8 @@ Nguyên tắc: **mọi thứ cần chia sẻ trong nhóm → platform; mọi th�
 cd eval-kit
 pip install -r requirements.txt          # chỉ cần thư viện requests
 cp dataset.example.jsonl dataset.jsonl   # dataset mẫu, sửa/thêm tuỳ ý
-printf 'OPENAI_API_KEY=sk-...\nDEEPSEEK_API_KEY=sk-...\n' > .env   # key coach cấp, KHÔNG commit
-python3 test_eval_kit.py                 # 31 test offline — sạch hết mới đi tiếp
+cp .env.example .env                     # điền key của provider bạn dùng (vd OPENAI_API_KEY)
+python3 test_eval_kit.py                 # 37 test offline — sạch hết mới đi tiếp
 ```
 
 Gợi ý: nếu test fail ngay tầng 2 (corpus), gần như chắc chắn bạn đang chạy sai thư mục —
@@ -80,12 +80,14 @@ Mỗi lệnh ghi đè file output của nó — muốn giữ vòng cũ, copy fil
 
 ## Cấu hình (biến môi trường, đặt trong .env)
 
+Repo gọi **thẳng API của provider** (OpenAI-compatible) — bạn tự chọn model, tự trả tiền key của mình, không phụ thuộc gateway của khóa học:
+
 | Biến | Mặc định | Ý nghĩa |
 |---|---|---|
-| `EVAL_MODEL` | `deepseek/deepseek-v4-flash` | Model của tutor |
+| `EVAL_MODEL` | `deepseek/deepseek-v4-flash` | Model của tutor — đổi sang `openai/...`, `gemini/...`, `anthropic/...`, `openrouter/...` tuỳ key bạn có |
 | `EVAL_JUDGE_MODEL` | `openai/gpt-4o-mini` | Model của judge (nên khác tutor) |
-| `EVAL_BASE_URL` | `https://litellm.vlearn.dev/v1` | Gateway |
-| `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` | — | Key theo family model |
+| `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` / `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENROUTER_API_KEY` | — | Key theo prefix của model |
+| `EVAL_BASE_URL` + `EVAL_API_KEY` | — | Tuỳ chọn: gateway OpenAI-compatible riêng |
 
 ## Gỡ lỗi nhanh
 
@@ -93,7 +95,7 @@ Mỗi lệnh ghi đè file output của nó — muốn giữ vòng cũ, copy fil
 |---|---|
 | `Chưa có API key...` | Thiếu `.env`, hoặc tên biến sai family (deepseek cần `DEEPSEEK_API_KEY`) |
 | Row có `_parse_error` / `_truncated` | Model trả JSON vỡ (thường do cắt output) — mở `raw_content` xem; đó là một failure mode thật, đáng ghi vào bài |
-| Judge toàn 401 | Key không phải của gateway LiteLLM (xem Lưu ý trong README) |
+| Judge toàn 401 | Sai key cho provider của model judge (xem bảng provider ở trên), hoặc shell đang export sẵn `OPENAI_API_KEY` khác — kiểm tra `env \| grep OPENAI` |
 | Retrieve trượt chủ đề | Câu hỏi quá ngắn/deixis — gắn `metadata.slide` với `keyword` vào row dataset |
 
 ## Nộp bài thì lấy gì từ repo?

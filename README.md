@@ -42,12 +42,22 @@ mở `report.html` (double-click cũng được — file tĩnh, không cần ser
 
 ## Cấu hình (biến môi trường, có thể đặt trong .env)
 
+Model viết dạng `provider/model` — repo gọi **thẳng API chuẩn của từng hãng**,
+không bắt buộc gateway nào:
+
+| Prefix model | Cần key | Endpoint mặc định |
+|---|---|---|
+| `openai/gpt-4o-mini`, ... | `OPENAI_API_KEY` | api.openai.com |
+| `deepseek/deepseek-v4-flash`, ... | `DEEPSEEK_API_KEY` | api.deepseek.com |
+| `gemini/gemini-3.1-flash-lite`, ... | `GEMINI_API_KEY` | generativelanguage.googleapis.com (chế độ tương thích OpenAI) |
+| `anthropic/claude-...` | `ANTHROPIC_API_KEY` | api.anthropic.com (chế độ tương thích OpenAI) |
+| `openrouter/<vendor>/<model>` | `OPENROUTER_API_KEY` | openrouter.ai |
+
 | Biến | Mặc định | Ý nghĩa |
 |---|---|---|
-| `OPENAI_API_KEY` | — (bắt buộc) | Key LiteLLM gateway |
-| `EVAL_BASE_URL` | `https://litellm.vlearn.dev/v1` | Gateway OpenAI-compatible |
 | `EVAL_MODEL` | `deepseek/deepseek-v4-flash` | Model của tutor |
-| `EVAL_JUDGE_MODEL` | `openai/gpt-4o-mini` | Model của judge (khác tutor để tránh tự chấm) |
+| `EVAL_JUDGE_MODEL` | `openai/gpt-4o-mini` | Model của judge (nên khác tutor) |
+| `EVAL_BASE_URL` + `EVAL_API_KEY` | — (không đặt = gọi thẳng provider) | Tuỳ chọn: đi qua gateway OpenAI-compatible riêng (LiteLLM, proxy nội bộ...) — model id giữ nguyên nguyên chuỗi |
 
 ## Cấu trúc repo
 
@@ -78,7 +88,7 @@ bối cảnh. Không có slide (noise, chào hỏi, out-of-scope...) thì để 
 
 ## Lưu ý
 
-- Model deepseek được gửi kèm `"thinking": {"type": "disabled"}` (đã xử lý sẵn trong
+- Model deepseek v4 được gửi kèm `"thinking": {"type": "disabled"}` (đã xử lý sẵn trong
   `tutor.py`) — thiếu nó output sẽ bị reasoning tokens ăn mất.
 - Tutor chạy với `max_tokens=2000`: với 800, câu trả lời dài bị cắt giữa JSON
   (`finish_reason=length`) thành output không parse được — row như vậy được đánh dấu

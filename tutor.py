@@ -69,14 +69,40 @@ def load_dotenv(path=os.path.join(BASE_DIR, ".env")):
 
 load_dotenv()  # nạp .env TRƯỚC khi đọc các hằng số cấu hình bên dưới
 
-BASE_URL = os.environ.get("EVAL_BASE_URL", "https://litellm.vlearn.dev/v1")
+# --- Providers: gọi TRỰC TIẾP API chuẩn của từng hãng (OpenAI-compatible).
+# Đặt key theo family trong .env — ví dụ model "openai/gpt-4o-mini" cần OPENAI_API_KEY.
+# Vẫn dùng được gateway riêng (LiteLLM...) nếu đặt EVAL_BASE_URL — khi đó model id
+# giữ nguyên nguyên chuỗi (vd "deepseek/deepseek-v4-flash") và key lấy từ EVAL_API_KEY.
+PROVIDERS = {
+    "openai":     ("OPENAI_API_KEY", "https://api.openai.com/v1"),
+    "deepseek":   ("DEEPSEEK_API_KEY", "https://api.deepseek.com/v1"),
+    "anthropic":  ("ANTHROPIC_API_KEY", "https://api.anthropic.com/v1"),
+    "gemini":     ("GEMINI_API_KEY", "https://generativelanguage.googleapis.com/v1beta/openai"),
+    "openrouter": ("OPENROUTER_API_KEY", "https://openrouter.ai/api/v1"),
+}
+
+BASE_URL = os.environ.get("EVAL_BASE_URL")  # None = gọi thẳng provider
 MODEL = os.environ.get("EVAL_MODEL", "deepseek/deepseek-v4-flash")
 
-def get_api_key(model=MODEL):
-    """Chọn key theo family của model (deepseek/deepseek-... -> DEEPSEEK_API_KEY).
-    Fallback về OPENAI_API_KEY nếu không có key riêng."""
+def resolve_provider(model):
+    """-> (base_url, api_key, model_id_thật). Gateway nếu EVAL_BASE_URL được đặt."""
+    if BASE_URL:
+        key = os.environ.get("EVAL_API_KEY") or get_api_key(model)
+        return BASE_URL, key, model
     family = model.split("/")[0] if "/" in model else "openai"
-    return os.environ.get(f"{family.upper()}_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    if family not in PROVIDERS:
+        raise RuntimeError(
+            f"Không biết provider cho model {model}. Các provider hỗ trợ: "
+            + ", ".join(PROVIDERS)
+            + " — hoặc đặt EVAL_BASE_URL trỏ về gateway OpenAI-compatible của bạn.")
+    env_name, base = PROVIDERS[family]
+    return base, os.environ.get(env_name), model[len(family) + 1:]
+
+def get_api_key(model=MODEL):
+    """Key theo family của model (openai/gpt-... -> OPENAI_API_KEY...)."""
+    family = model.split("/")[0] if "/" in model else "openai"
+    env_name = PROVIDERS.get(family, (f"{family.upper()}_API_KEY", None))[0]
+    return os.environ.get(env_name) or os.environ.get("OPENAI_API_KEY")
 
 # --- Xử lý text: bỏ dấu tiếng Việt + lowercase để so từ khoá ổn định
 def normalize(text):
@@ -154,30 +180,32 @@ def retrieve_corpus(question, top_k=4, sections=None):
 # --- Gọi LLM chat completion (OpenAI-compatible) qua thư viện requests
 def chat(messages, model=None, temperature=0, max_tokens=800, tools=None):
     model = model or MODEL
-    key = get_api_key(model)
+    base_url, key, model_id = resolve_provider(model)
     if not key:
+        family = model.split("/")[0] if "/" in model else "openai"
+        env_name = PROVIDERS.get(family, (f"{family.upper()}_API_KEY",))[0]
         raise RuntimeError(
-            f"Chưa có API key cho model {model}. Tạo file .env trong thư mục eval-kit, ví dụ:\n"
-            "  DEEPSEEK_API_KEY=sk-...   (cho model deepseek/*)\n"
-            "  OPENAI_API_KEY=sk-...     (cho model openai/*)\n"
-            "rồi chạy lại.")
-    payload = {"model": model, "messages": messages,
+            f"Chưa có API key cho model {model}. Đặt {env_name} trong file .env "
+            "của thư mục eval-kit rồi chạy lại.\n"
+            "(Muốn đi qua gateway riêng? Đặt EVAL_BASE_URL + EVAL_API_KEY.)")
+    payload = {"model": model_id, "messages": messages,
                "temperature": temperature, "max_tokens": max_tokens}
-    if "deepseek" in model:  # bắt buộc với deepseek: tắt thinking, nếu không mất output
+    if "deepseek-v4" in model:  # bắt buộc với deepseek v4: tắt thinking, nếu không mất output
         payload["thinking"] = {"type": "disabled"}
     # ép JSON: đo thực tế ~20% response không có cờ này bị vỡ JSON giữa chừng.
     # Khi có tools, chỉ ép JSON ở vòng trả lời cuối — một số model bỏ tool_calls
-    # nếu response_format bật ngay từ vòng đầu (gateway chấp nhận cả hai cùng lúc,
-    # nhưng an toàn hơn là chỉ ép khi không còn tool nào khả dụng).
-    if not tools:
+    # nếu response_format bật ngay từ vòng đầu. Anthropic (endpoint tương thích
+    # OpenAI) không hỗ trợ response_format — bỏ qua, parser đã chịu được fence.
+    anthropic = model.startswith("anthropic/")
+    if not tools and not anthropic:
         payload["response_format"] = {"type": "json_object"}
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
     t0 = time.time()
     last_err = None
-    for attempt in range(3):  # gateway thỉnh thoảng trả body JSON bị cắt ngang (200 nhưng không parse được) — retry
-        resp = requests.post(BASE_URL + "/chat/completions", json=payload, timeout=120,
+    for attempt in range(3):  # gateway/provider thỉnh thoảng trả body JSON bị cắt ngang (200 nhưng không parse được) — retry
+        resp = requests.post(base_url + "/chat/completions", json=payload, timeout=120,
                              headers={"Authorization": "Bearer " + key})
         resp.raise_for_status()
         try:
@@ -185,7 +213,7 @@ def chat(messages, model=None, temperature=0, max_tokens=800, tools=None):
         except ValueError as e:
             last_err = e
             time.sleep(1)
-    raise RuntimeError(f"Gateway trả body không parse được JSON sau 3 lần thử: {last_err}")
+    raise RuntimeError(f"Provider trả body không parse được JSON sau 3 lần thử: {last_err}")
 
 def parse_json_content(content):
     """Model đôi khi bọc JSON trong ``` fence — lột ra trước khi parse.

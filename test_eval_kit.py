@@ -63,6 +63,38 @@ check("slide đầy đủ", 's51' in ctx and '"calibration"' in ctx and "Ngữ c
 ctx2 = tutor.format_slide_context({"id": "s12", "title": "T", "keyword": None})
 check("slide không keyword", 's12' in ctx2 and "từ khoá" not in ctx2)
 
+print("== Tầng 5b: resolve_provider ==")
+import importlib
+saved_base = tutor.BASE_URL
+saved_ds_key = os.environ.get("DEEPSEEK_API_KEY")
+tutor.BASE_URL = None
+os.environ["DEEPSEEK_API_KEY"] = "test-key-ds"
+b, k, m = tutor.resolve_provider("deepseek/deepseek-v4-flash")
+check("deepseek direct: base + strip prefix",
+      b == "https://api.deepseek.com/v1" and m == "deepseek-v4-flash" and k == "test-key-ds")
+b, k, m = tutor.resolve_provider("openai/gpt-4o-mini")
+check("openai direct", b == "https://api.openai.com/v1" and m == "gpt-4o-mini")
+b, k, m = tutor.resolve_provider("gemini/gemini-3.1-flash-lite")
+check("gemini direct", "generativelanguage.googleapis.com" in b and m == "gemini-3.1-flash-lite")
+b, k, m = tutor.resolve_provider("openrouter/anthropic/claude-x")
+check("openrouter giữ nguyên id 2 đoạn", m == "anthropic/claude-x" and "openrouter.ai" in b)
+tutor.BASE_URL = "https://gw.example/v1"
+os.environ["EVAL_API_KEY"] = "gw-key"
+b, k, m = tutor.resolve_provider("deepseek/deepseek-v4-flash")
+check("gateway mode: giữ nguyên model id + EVAL_API_KEY",
+      b == "https://gw.example/v1" and m == "deepseek/deepseek-v4-flash" and k == "gw-key")
+try:
+    tutor.BASE_URL = None
+    tutor.resolve_provider("vendor-la/model-x")
+    check("provider lạ -> báo lỗi rõ", False)
+except RuntimeError as e:
+    check("provider lạ -> báo lỗi rõ", "EVAL_BASE_URL" in str(e))
+tutor.BASE_URL = saved_base
+# dọn env test — nếu không EVAL_API_KEY/DEEPSEEK_API_KEY giả sẽ làm live test 401
+os.environ.pop("EVAL_API_KEY", None)
+if saved_ds_key is not None:
+    os.environ["DEEPSEEK_API_KEY"] = saved_ds_key
+
 print("== Tầng 6: vòng tool-calling (chat giả) ==")
 def fake_chat_factory(responses):
     it = iter(responses)
