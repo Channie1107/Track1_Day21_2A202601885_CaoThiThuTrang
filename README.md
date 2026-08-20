@@ -76,7 +76,7 @@ Chạy dataset khác: `python3 eval/run_eval.py ten-file.jsonl`.
 
 ### Bước 1 — `eval/run_eval.py`: tutor thật chạy trên dataset
 
-- Đọc từng dòng `dataset.jsonl`, gọi tutor theo **cơ chế tool-calling y hệt platform**:
+- Đọc từng dòng `dataset.jsonl`, gọi tutor theo **cơ chế tool-calling thật**:
   model tự quyết định gọi `kb_search` bao nhiêu lần, với truy vấn nào (xem trong
   `results.jsonl`, trường `tool_calls`).
 - In từng dòng: thời gian, số token, chi phí ước tính. Tổng chi phí in ở cuối.
