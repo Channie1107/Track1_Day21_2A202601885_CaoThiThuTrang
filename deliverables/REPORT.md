@@ -163,7 +163,7 @@ results-vN.jsonl, labels.csv, judge-prompt-vN.md, verdicts-vN.jsonl, braintrust-
 
 | Tiêu chí | Ngưỡng pass | Giao cho | Vì sao (dựa trên số liệu) |
 |---|---|---|---|
-| vd: groundedness | ≥90% | LLM judge + audit 10%/tuần | TNR 91% sau 2 vòng near-miss |
+| vd: groundedness | ≥90% | LLM judge + audit 10%/tuần | bắt đúng 91% output xấu sau 2 vòng near-miss |
 |  |  |  |  |
 |  |  |  |  |
 
