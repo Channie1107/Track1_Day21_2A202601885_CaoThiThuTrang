@@ -24,7 +24,7 @@ def main():
     verdicts = {v["scenario_id"]: v for v in read_jsonl("verdicts.jsonl")}
     labels = read_labels()
     if not results:
-        print("Chưa có results.jsonl — report sẽ trống. Chạy python3 run_eval.py trước.")
+        print("Chưa có results.jsonl — report sẽ trống. Chạy python3 src/run_eval.py trước.")
     # Gộp 3 nguồn thành 1 list row để nhúng vào HTML
     rows = []
     for r in results:

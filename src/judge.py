@@ -1,9 +1,9 @@
 """Chấm results.jsonl bằng LLM judge -> verdicts.jsonl, rồi đối chiếu labels.csv.
 
-Cách dùng:
-  python3 judge.py                # chấm tất cả các row
-  python3 judge.py sc-01 sc-03    # chỉ chấm các scenario_id được chọn
-Judge dùng prompt trong judge_prompt.md (placeholder {{input}} {{answer}} {{sources}}).
+Cách dùng (chạy từ root repo):
+  python3 src/judge.py                # chấm tất cả các row
+  python3 src/judge.py sc-01 sc-03    # chỉ chấm các scenario_id được chọn
+Judge dùng prompt trong src/judge_prompt.md (placeholder {{input}} {{answer}} {{sources}}).
 Model judge mặc định khác model tutor (EVAL_JUDGE_MODEL, mặc định openai/gpt-4o-mini)
 để tránh tự chấm chéo cùng một model.
 """
@@ -16,6 +16,9 @@ import tracing
 _tracer = tracing.init_tracer()
 
 JUDGE_MODEL = os.environ.get("EVAL_JUDGE_MODEL", "openai/gpt-4o-mini")
+
+# judge_prompt.md nằm cạnh file này trong src/ — resolve theo __file__, không theo cwd
+PROMPT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "judge_prompt.md")
 
 def read_jsonl(path):
     if not os.path.exists(path):
@@ -76,13 +79,13 @@ def print_confusion(verdicts, labels):
 def main():
     results = read_jsonl("results.jsonl")
     if not results:
-        sys.exit("Không thấy results.jsonl — chạy python3 run_eval.py trước.")
+        sys.exit("Không thấy results.jsonl — chạy python3 src/run_eval.py trước.")
     if not tutor.get_api_key(JUDGE_MODEL):
         sys.exit("Chưa có API key cho judge model %s — xem .env.example." % JUDGE_MODEL)
     chosen = set(sys.argv[1:])
     rows = [r for r in results if not chosen or r["scenario_id"] in chosen]
     rows = [r for r in rows if "output" in r]  # bỏ row lỗi, không có gì để chấm
-    template = open("judge_prompt.md", encoding="utf-8").read()
+    template = open(PROMPT_PATH, encoding="utf-8").read()
     print("Chấm %d row bằng judge %s ..." % (len(rows), JUDGE_MODEL))
 
     verdicts = []

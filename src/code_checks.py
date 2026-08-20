@@ -3,7 +3,7 @@
 Đây là làn "Code check" của bài lab: những tiêu chí viết được thành rule thì kiểm
 bằng code — nhanh, rẻ, khách quan, chạy lại bao nhiêu lần cũng được.
 
-Chạy:  python3 code_checks.py            # in bảng pass/fail từng check từng row
+Chạy:  python3 src/code_checks.py            # in bảng pass/fail từng check từng row
 Mở rộng: thêm hàm check_* mới của riêng nhóm (xem 3 hàm mẫu dưới).
 """
 import json
@@ -69,7 +69,7 @@ CHECKS = [  # thêm check của nhóm vào đây
 
 def main(path="results.jsonl"):
     if not os.path.exists(path):
-        raise SystemExit("Không thấy %s — chạy python3 run_eval.py trước." % path)
+        raise SystemExit("Không thấy %s — chạy python3 src/run_eval.py trước." % path)
     rows = [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
 
     sections = tutor.load_corpus()

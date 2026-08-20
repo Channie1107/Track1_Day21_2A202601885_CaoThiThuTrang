@@ -1,14 +1,16 @@
-"""Test cho eval-kit — chạy: python3 test_eval_kit.py
+"""Test cho eval-kit — chạy từ root repo: python3 tests/test_eval_kit.py
 
 Hai tầng:
 - Offline (mặc định, không cần API key): normalize/retrieve/parse/slide context,
   vòng tool-calling với chat GIẢ (mock), judge prompt, cost estimate.
-- Live (EVAL_LIVE=1 python3 test_eval_kit.py): gọi gateway thật 3 câu để chứng
+- Live (EVAL_LIVE=1 python3 tests/test_eval_kit.py): gọi gateway thật 3 câu để chứng
   minh vòng tool-calling chạy được với model thật.
 """
 import json
 import os
 import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
 import tutor
 
@@ -225,7 +227,7 @@ if os.environ.get("EVAL_LIVE") == "1":
         check("live: %s" % q[:30], ok_contract, str(out)[:100])
         print("       scope=%s steps=%s tools=%d" % (out.get("scope"), meta["steps"], len(meta["tool_calls"])))
 else:
-    print("== Tầng 8 (live) bỏ qua — bật bằng: EVAL_LIVE=1 python3 test_eval_kit.py ==")
+    print("== Tầng 8 (live) bỏ qua — bật bằng: EVAL_LIVE=1 python3 tests/test_eval_kit.py ==")
 
 print("\nKết quả: %d pass, %d fail" % (PASS, FAIL))
 sys.exit(1 if FAIL else 0)

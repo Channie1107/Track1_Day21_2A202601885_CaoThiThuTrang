@@ -1,13 +1,13 @@
 """Chạy tutor trên toàn bộ dataset -> results.jsonl (kèm latency, tokens, chi phí).
 
-Cách dùng:  python3 run_eval.py [dataset.jsonl]
-Mặc định đọc dataset.jsonl; nếu chưa có thì copy dataset.example.jsonl làm mẫu.
+Cách dùng:  python3 src/run_eval.py [dataset.jsonl]
+Mặc định đọc dataset.jsonl ở root repo; nếu chưa có thì copy data/dataset.example.jsonl làm mẫu.
 Chạy TUẦN TỰ (không song song) để dễ đọc log và tránh vượt rate limit.
 
 Tracing (bài lab yêu cầu): đặt BRAINTRUST_API_KEY hoặc LANGSMITH_API_KEY trong .env —
 mỗi câu hỏi sẽ được log thành một trace trong project "ai-evaluation" (xem lại tool
 calls, tokens, cost trên app.braintrust.dev / smith.langchain.com). Không có key thì
-bỏ qua lặng lẽ. Chi tiết trong GUIDE.md mục Tracing.
+bỏ qua lặng lẽ. Chi tiết trong README.md mục Tracing.
 """
 import json, os, sys, time
 
@@ -36,7 +36,7 @@ def read_jsonl(path):
 def main():
     dataset_path = sys.argv[1] if len(sys.argv) > 1 else "dataset.jsonl"
     if not os.path.exists(dataset_path):
-        sys.exit("Không thấy %s. Tạo bằng: cp dataset.example.jsonl dataset.jsonl"
+        sys.exit("Không thấy %s. Tạo bằng: cp data/dataset.example.jsonl dataset.jsonl"
                  % dataset_path)
     if not tutor.get_api_key():
         sys.exit("Chưa có API key cho model %s.\n"
@@ -93,7 +93,7 @@ def main():
               % (len(results), _tracer.backend,
                  os.environ.get("BRAINTRUST_PROJECT") or os.environ.get("LANGSMITH_PROJECT")
                  or "ai-evaluation"))
-    print("Bước tiếp: python3 judge.py (chấm tự động) hoặc python3 report.py (xem report)")
+    print("Bước tiếp: python3 src/judge.py (chấm tự động) hoặc python3 src/report.py (xem report)")
 
 if __name__ == "__main__":
     main()
