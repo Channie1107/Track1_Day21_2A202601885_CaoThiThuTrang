@@ -1,9 +1,5 @@
 # AI Support Log — Cao Thị Thu Trang
 
-> Nhật ký ghi lại phạm vi AI hỗ trợ trong phần việc do Cao Thị Thu Trang thực
-> hiện. AI chỉ hỗ trợ soạn thảo, kiểm tra cấu trúc và phân tích; quyết định chất
-> lượng cuối cùng thuộc về người thực hiện.
-
 ## Phạm vi công việc cá nhân
 
 | Hạng mục | AI hỗ trợ | Cách kiểm chứng |
