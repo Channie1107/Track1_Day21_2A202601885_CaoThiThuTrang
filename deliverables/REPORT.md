@@ -1,8 +1,5 @@
 # Báo cáo AI Evaluation
 
-> Báo cáo sử dụng các evidence đang có trong repository. Những phép đo chưa có
-> file kết quả tương ứng được ghi rõ là chưa đo, không suy diễn thành số liệu.
-
 ## 1. Input Grid & Combinations
 
 ### Mục tiêu coverage
