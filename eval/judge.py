@@ -35,8 +35,9 @@ def read_labels(path="labels.csv"):
     if not os.path.exists(path):
         return {}
     with open(path, encoding="utf-8") as f:
-        return {r["scenario_id"]: r["label"].strip().lower()
-                for r in csv.DictReader(f) if r.get("label", "").strip()}
+        return {r["scenario_id"].strip(): r["label"].strip().lower()
+                for r in csv.DictReader(f)
+                if r.get("scenario_id", "").strip() and r.get("label", "").strip()}
 
 def build_judge_prompt(rec, template):
     """Nhồi input/answer/sources của 1 row vào template.
@@ -58,7 +59,8 @@ def judge_row(rec, template):
                                model=JUDGE_MODEL, max_tokens=500)
     content = data["choices"][0]["message"]["content"]
     out = tutor.parse_json_content(content)
-    return {"scenario_id": rec["scenario_id"], "verdict": out.get("verdict", "uncertain"),
+    verdict = str(out.get("verdict", "uncertain")).strip().lower()
+    return {"scenario_id": rec["scenario_id"].strip(), "verdict": verdict,
             "score": out.get("score"), "rationale": out.get("rationale", ""),
             "issues": out.get("issues", []), "raw_content": content,
             "usage": data.get("usage", {}), "latency_s": round(latency, 2)}

@@ -1,4 +1,4 @@
-"""Sinh report.html TĨNH (1 file, mở bằng double-click, không cần server/mạng).
+"""Sinh report.html tĩnh (1 file, mở bằng double-click, cần mạng cho marked.js CDN).
 
 Đọc results.jsonl + verdicts.jsonl + labels.csv, nhúng toàn bộ dữ liệu vào HTML.
 Nhãn pass/fail/uncertain KÈM NOTE NGẮN bấm/nhập trong report, lưu vào localStorage
@@ -48,12 +48,13 @@ def main():
 TEMPLATE = """<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Eval report — AI Tutor</title><style>
-body{font-family:-apple-system,system-ui,sans-serif;margin:0;background:#f6f7f9;color:#222}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;line-height:1.5;margin:0;padding:16px;background:#f6f7f9;color:#222}
 header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e2e4e8;padding:10px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;z-index:9}
 h1{font-size:16px;margin:0 12px 0 0}
 select,button{font-size:13px;padding:5px 10px;border:1px solid #ccd;border-radius:6px;background:#fff;cursor:pointer}
 main{max-width:960px;margin:16px auto;padding:0 12px}
 .card{background:#fff;border:1px solid #e2e4e8;border-radius:10px;padding:14px;margin-bottom:14px}
+.md p{margin:0 0 8px}.md p:last-child{margin-bottom:0}.md ul,.md ol{padding-left:24px}
 .q{font-weight:600;margin-bottom:8px}
 .meta{font-size:12px;color:#778;margin-bottom:8px}
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600}
@@ -70,6 +71,7 @@ main{max-width:960px;margin:16px auto;padding:0 12px}
 Lọc verdict: <select id="flt"><option value="">Tất cả</option><option>pass</option><option>fail</option><option>uncertain</option><option value="none">(chưa chấm)</option></select>
 <button onclick="exportCsv()">Export labels.csv</button><span id="stat"></span></header>
 <main id="list"></main>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 var ROWS=__DATA__, KEY="evalkit-labels";
 var saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
@@ -77,6 +79,7 @@ var saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
 function norm(v){return typeof v=="string"?{label:v,note:""}:(v||{label:"",note:""})}
 function cur(sid,human){var s=saved[sid];return s?norm(s):{label:human||"",note:""}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function md(s){var text=String(s==null?"":s);return window.marked?marked.parse(esc(text),{breaks:true}):esc(text)}
 function badge(v){return v?'<span class="badge '+v+'">judge: '+v+'</span>':'<span class="badge">chưa chấm</span>'}
 function render(){
  var f=document.getElementById("flt").value,el=document.getElementById("list"),h="",n=0;
@@ -86,12 +89,12 @@ function render(){
   h+='<div class="card"><div class="meta">'+esc(r.scenario_id)+' &middot; '+esc(o.scope||"")+
   (r.latency_s!=null?' &middot; '+r.latency_s+'s':'')+(r.cost_usd!=null?' &middot; ~$'+r.cost_usd:'')+'</div>';
   if(r.slide)h+='<div class="meta" style="color:#346">Đang xem slide '+esc(r.slide.id)+' — '+esc(r.slide.title)+(r.slide.keyword?' &middot; từ khoá: <b>'+esc(r.slide.keyword)+'</b>':'')+'</div>';
-  h+='<div class="q">'+esc(r.input)+'</div>';
+  h+='<div class="q md">'+md(r.input)+'</div>';
   if(r.error)h+='<div class="badge fail">lỗi chạy</div><div class="rat">'+esc(r.error)+'</div>';
   else{h+='<div>'+esc(o.answer||"(không parse được answer)")+'</div>';
    (o.sources||[]).forEach(function(s){h+='<div class="src"><code>'+esc(s.doc_id)+'#'+esc(s.section_id)+'</code> — “'+esc(s.quote)+'”</div>'});
    if(o.followup_questions)h+='<div style="margin-top:6px"><b>Gợi ý hỏi tiếp:</b></div>'+o.followup_questions.map(function(q){return '<div class="fu">• '+esc(q)+'</div>'}).join("");}
-  h+='<div style="margin-top:10px">'+badge(r.verdict)+' <span class="rat">'+esc(r.rationale)+'</span></div>'+
+  h+='<div style="margin-top:10px">'+badge(r.verdict)+' <span class="rat md">'+md(r.rationale)+'</span></div>'+
   '<div class="lbl" style="margin-top:8px">Nhãn người: '+["pass","fail","uncertain"].map(function(v){
    return '<button data-i="'+i+'" data-v="'+v+'" class="'+(lbl==v?"on":"")+'" onclick="setLabel(this)">'+v+'</button>'}).join(" ")+
   ' <input type="text" class="note" data-i="'+i+'" placeholder="note ngắn (vd: fail vì citation)" value="'+esc(c.note)+'" onchange="setNote(this)">'+
@@ -113,6 +116,10 @@ function exportCsv(){var s="scenario_id,label,note\\n";
   s+=q(r.scenario_id)+","+q(c.label)+","+q(c.note)+"\\n"});
  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/csv"}));
  a.download="labels.csv";a.click();}
+var renderBase=render;
+render=function(){renderBase();document.querySelectorAll(".q + div").forEach(function(node){
+ if(!node.classList.contains("badge")){node.className+=" md";node.innerHTML=md(node.textContent)}
+});};
 document.getElementById("flt").onchange=render;render();
 </script></body></html>"""
 
